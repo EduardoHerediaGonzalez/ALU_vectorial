@@ -1,8 +1,11 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
+// Institution: CINVESTAV Guadalajara Unit
+// Engineers: 
+// Lino Rosauro González Guerra
+// Eduardo Rafael Heredia González
+// Emmanuel Díaz Marín
+//
 // Create Date: 11/20/2024 06:30:01 PM
 // Design Name: 
 // Module Name: ALU
@@ -20,27 +23,28 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ALU #(parameter D_BUS_WIDTH = 8, C_BUS_WIDTH = 3)(
+module ALU #(parameter D_BUS_WIDTH = 8)(
   output equal_flag,
   output less_flag,
   output greater_flag,
+  output reg overflow_flag,
   output [(D_BUS_WIDTH - 1): 0] result,
   input [(D_BUS_WIDTH - 1): 0] operand_A,
   input [(D_BUS_WIDTH - 1): 0] operand_B,
-  input [(C_BUS_WIDTH - 1): 0] opcode
+  input [3:0] opcode
 );
-  
+
   //Local parameters
-  localparam ADDITION = 0;
-  localparam SUBTRACTION = 1;
-  localparam BITWISE_AND = 2;
-  localparam BITWISE_OR = 3;
-  localparam BITWISE_XOR = 4;
-  localparam COMPARISON = 5;
-  localparam LEFT_SHIFT = 6;
-  localparam RIGHT_SHIFT = 7;
+  localparam ADDITION =     0;
+  localparam SUBTRACTION =  1;
+  localparam BITWISE_AND =  2;
+  localparam BITWISE_OR =   3;
+  localparam BITWISE_XOR =  4;
+  localparam COMPARISON =   5;
+  localparam LEFT_SHIFT =   6;
+  localparam RIGHT_SHIFT =  7;
   localparam MULTIPLICATION = 8;
-  localparam DIVISION = 9;
+  localparam DIVISION =     9;
   localparam MAX_VALUE = ((2**D_BUS_WIDTH) - 1);
   
   //Continuous assigments
@@ -53,23 +57,33 @@ module ALU #(parameter D_BUS_WIDTH = 8, C_BUS_WIDTH = 3)(
                     (opcode == LEFT_SHIFT) ? left_shift(operand_A, operand_B): 
                     (opcode == RIGHT_SHIFT) ? right_shift(operand_A, operand_B): 
                     (opcode == MULTIPLICATION) ? multiplication(operand_A, operand_B): 
-                    (opcode == DIVISION) ? division(operand_A, operand_B): 'hx;
+                    (opcode == DIVISION) ? division(operand_A, operand_B): 'b0;
   
-  assign flag_equal = (operand_A == operand_B) ? 1'b1: 1'bx;
-  assign flag_less = (operand_A < operand_B) ? 1'b1: 1'bx;
-  assign flag_greater = (operand_A > operand_B) ? 1'b1: 1'bx;
+  assign flag_equal = (operand_A == operand_B) ? 1'b1: 1'b0;
+  assign flag_less =  (operand_A < operand_B) ? 1'b1: 1'b0;
+  assign flag_greater = (operand_A > operand_B) ? 1'b1: 1'b0;
   
   //Definition of the function addition
   function [(D_BUS_WIDTH - 1): 0] addition (input [(D_BUS_WIDTH - 1): 0] num1, num2);
     begin
-      addition = (num2 <= (MAX_VALUE - num1)) ? (num1 + num2) : 'hx;
+      if (num2 <= (MAX_VALUE - num1)) begin
+       addition = (num1 + num2);
+       end else begin
+       addition = 'b0;
+       overflow_flag = 1'b1;
+       end
     end
   endfunction
   
   //Definition of the function subtraction
   function [(D_BUS_WIDTH - 1): 0] subtraction (input [(D_BUS_WIDTH - 1): 0] num1, num2);
     begin
-      subtraction = (num2 <= num1) ? (num1 - num2) : 'hx;
+      if (num2 <= num1) begin
+        subtraction = num1 - num2;
+      end else begin
+        subtraction = 'b0;
+        overflow_flag = 1'b1;
+      end
     end
   endfunction
   
@@ -118,14 +132,24 @@ module ALU #(parameter D_BUS_WIDTH = 8, C_BUS_WIDTH = 3)(
   //Definition of the function multiplication
   function [(D_BUS_WIDTH - 1): 0] multiplication(input [(D_BUS_WIDTH - 1): 0] num1, num2);
     begin
-      multiplication = ((num1 * num2) < MAX_VALUE) ? num1 * num2 : 'hx;
+      if ((num1 * num2) < MAX_VALUE) begin
+        multiplication = num1 * num2;
+      end else begin
+        multiplication = 'b0;
+        overflow_flag = 1'b1;
+      end
     end
   endfunction
   
   //Definition of the function division
   function [(D_BUS_WIDTH - 1): 0] division(input [(D_BUS_WIDTH - 1): 0] num1, num2);
     begin
-      division = (num2 != 0) ? (num1 / num2) : 'hx;
+      if (num2 != 0) begin
+        division = num1 / num2;
+      end else begin
+        division = 'b0;
+        overflow_flag = 1'b1;
+      end
     end
   endfunction
   
