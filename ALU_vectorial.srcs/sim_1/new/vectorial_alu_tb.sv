@@ -22,5 +22,5 @@
 
 module vectorial_alu_tb(
 
-    );
+);
 endmodule

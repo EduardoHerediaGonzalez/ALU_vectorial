@@ -9,7 +9,7 @@
 // Create Date: 11/20/2024 06:30:01 PM
 // Design Name: 
 // Module Name: ALU
-// Project Name: 
+// Project Name:
 // Target Devices: 
 // Tool Versions: 
 // Description: 
@@ -23,15 +23,16 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ALU #(parameter D_BUS_WIDTH = 8)(
-  output equal_flag,
-  output less_flag,
-  output greater_flag,
-  output reg overflow_flag,
-  output [(D_BUS_WIDTH - 1): 0] result,
-  input [(D_BUS_WIDTH - 1): 0] operand_A,
-  input [(D_BUS_WIDTH - 1): 0] operand_B,
-  input [3:0] opcode
+module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4)(
+    // REG_FLAGS -> Bit 0 = Zero flag, Bit 1 = less flag, Bit 2 = Equal flag, Bit 3 = Greater flag, Bit 4 = Underflow flag, Bit 5 = Overflow flag
+    output reg [(REG_FLAGS_WIDTH - 1):0] REG_FLAGS,
+    output reg [(D_BUS_WIDTH - 1): 0] RESULT,
+    input [(D_BUS_WIDTH - 1): 0] OPERAND_A,
+    input [(D_BUS_WIDTH - 1): 0] OPERAND_B,
+    input [(OPCODE_WIDTH - 1):0] OPCODE,
+    input ENABLE,
+    input CLK,
+    input ARST
 );
 
   //Local parameters
@@ -46,111 +47,156 @@ module ALU #(parameter D_BUS_WIDTH = 8)(
   localparam MULTIPLICATION = 8;
   localparam DIVISION =     9;
   localparam MAX_VALUE = ((2**D_BUS_WIDTH) - 1);
+  localparam ZERO_FLAG_INDEX = 0;
+  localparam LESS_FLAG_INDEX = 1;
+  localparam EQUAL_FLAG_INDEX = 2;
+  localparam GREATER_FLAG_INDEX = 3;
+  localparam UNDERFLOW_FLAG_INDEX = 4;
+  localparam OVERFLOW_FLAG_INDEX = 5;
   
-  //Continuous assigments
-  assign result =   (opcode == ADDITION)? addition(operand_A, operand_B) :
-    				(opcode == SUBTRACTION) ? subtraction(operand_A, operand_B):
-                    (opcode == BITWISE_AND) ? bitwise_AND(operand_A, operand_B): 
-                    (opcode == BITWISE_OR) ? bitwise_OR(operand_A, operand_B): 
-                    (opcode == BITWISE_XOR) ? bitwise_XOR(operand_A, operand_B): 
-                    (opcode == COMPARISON) ? comparison(operand_A,operand_B):
-                    (opcode == LEFT_SHIFT) ? left_shift(operand_A, operand_B): 
-                    (opcode == RIGHT_SHIFT) ? right_shift(operand_A, operand_B): 
-                    (opcode == MULTIPLICATION) ? multiplication(operand_A, operand_B): 
-                    (opcode == DIVISION) ? division(operand_A, operand_B): 'b0;
+  always @(posedge CLK) begin
+    
+    if ((ENABLE == 0) || (ARST == 0))
+        RESULT = 0;
+    
+    else begin
+        case (OPCODE)
+            ADDITION:   RESULT = addition(OPERAND_A, OPERAND_B);
+            SUBTRACTION: RESULT = subtraction(OPERAND_A, OPERAND_B);
+            BITWISE_AND: RESULT = bitwise_AND(OPERAND_A, OPERAND_B);
+            BITWISE_OR: RESULT = bitwise_OR(OPERAND_A, OPERAND_B);
+            BITWISE_XOR: RESULT = bitwise_XOR(OPERAND_A, OPERAND_B);
+            COMPARISON: RESULT = comparison(OPERAND_A,OPERAND_B);
+            LEFT_SHIFT: RESULT = left_shift(OPERAND_A, OPERAND_B);
+            RIGHT_SHIFT: RESULT = right_shift(OPERAND_A, OPERAND_B);
+            MULTIPLICATION: RESULT = multiplication(OPERAND_A, OPERAND_B);
+            DIVISION: RESULT = division(OPERAND_A, OPERAND_B);
+            default: RESULT = 0;
+            
+        endcase
+        
+    end
   
-  assign flag_equal = (operand_A == operand_B) ? 1'b1: 1'b0;
-  assign flag_less =  (operand_A < operand_B) ? 1'b1: 1'b0;
-  assign flag_greater = (operand_A > operand_B) ? 1'b1: 1'b0;
+  end
   
-  //Definition of the function addition
+  // Definition of the function addition
   function [(D_BUS_WIDTH - 1): 0] addition (input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      if (num2 <= (MAX_VALUE - num1)) begin
-       addition = (num1 + num2);
-       end else begin
-       addition = 'b0;
-       overflow_flag = 1'b1;
-       end
-    end
+    REG_FLAGS = 0;
+    addition = num1 + num2;
+    
+    if (num2 > (MAX_VALUE - num1))
+        REG_FLAGS[OVERFLOW_FLAG_INDEX] = 1;
+        
+    if (addition == 0)
+        REG_FLAGS[ZERO_FLAG_INDEX] = 1;
+        
   endfunction
   
-  //Definition of the function subtraction
+  // Definition of the function subtraction
   function [(D_BUS_WIDTH - 1): 0] subtraction (input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      if (num2 <= num1) begin
+    REG_FLAGS = 0;
+    
+    if (num2 > num1) begin
+        num2 = ~num2;
+        num2 = num2 + 1;
+        
+        subtraction = num1 + num2;
+        REG_FLAGS[UNDERFLOW_FLAG_INDEX] = 1;
+    end 
+    else
         subtraction = num1 - num2;
-      end else begin
-        subtraction = 'b0;
-        overflow_flag = 1'b1;
-      end
-    end
+        
+    if (subtraction == 0)
+        REG_FLAGS[ZERO_FLAG_INDEX] = 1;
+        
   endfunction
   
-  //Definition of the function bitwise AND
+  // Definition of the function bitwise AND
   function [(D_BUS_WIDTH - 1): 0] bitwise_AND (input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      bitwise_AND = (num1 & num2);
-    end
+    REG_FLAGS = 0;
+    
+    bitwise_AND = num1 & num2;
+      
   endfunction
   
-  //Definition of the function bitwise OR
+  // Definition of the function bitwise OR
   function [(D_BUS_WIDTH - 1): 0] bitwise_OR (input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      bitwise_OR = (num1 | num2);
-    end
+    REG_FLAGS = 0;
+    
+    bitwise_OR = num1 | num2;
+      
   endfunction
   
-  //Definition of the function bitwise XOR
+  // Definition of the function bitwise XOR
   function [(D_BUS_WIDTH - 1): 0] bitwise_XOR (input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      bitwise_XOR = num1 ^ num2;
-    end
+    REG_FLAGS = 0;
+    
+    bitwise_XOR = num1 ^ num2;
+
   endfunction
   
-  //Definition of the function comparison
+  // Definition of the function comparison
   function [(D_BUS_WIDTH - 1): 0] comparison(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      comparison = (num1 == num2);
+    REG_FLAGS = 0;
+    comparison = 0;
+    
+    if (num1 < num2)
+        REG_FLAGS[LESS_FLAG_INDEX] = 1;
+    
+    else if (num1 == num2) begin
+        REG_FLAGS[EQUAL_FLAG_INDEX] = 1;
+        comparison = 1;
     end
+    
+    else
+        REG_FLAGS[GREATER_FLAG_INDEX] = 1;
+
   endfunction
   
-  //Definition of the function left shift
+  // Definition of the function left shift
   function [(D_BUS_WIDTH - 1): 0] left_shift(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      left_shift = (num1 << num2);
-    end
+    REG_FLAGS = 0;
+      
+    left_shift = num1 << num2;
+      
   endfunction
   
-  //Definition of the function right shift
+  // Definition of the function right shift
   function [(D_BUS_WIDTH - 1): 0] right_shift(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      right_shift = (num1 >> num2);
-    end
+    REG_FLAGS = 0;
+    
+    right_shift = num1 >> num2;
+    
   endfunction
   
-  //Definition of the function multiplication
+  // Definition of the function multiplication
   function [(D_BUS_WIDTH - 1): 0] multiplication(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      if ((num1 * num2) < MAX_VALUE) begin
+    REG_FLAGS = 0;
+    multiplication = 0;
+    
+    if ((num1 * num2) < MAX_VALUE)
         multiplication = num1 * num2;
-      end else begin
-        multiplication = 'b0;
-        overflow_flag = 1'b1;
-      end
-    end
+    else
+        REG_FLAGS[OVERFLOW_FLAG_INDEX] = 1;
+        
+    if (multiplication == 0)
+        REG_FLAGS[ZERO_FLAG_INDEX] = 1;
+      
   endfunction
   
-  //Definition of the function division
+  // Definition of the function division
   function [(D_BUS_WIDTH - 1): 0] division(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    begin
-      if (num2 != 0) begin
+    REG_FLAGS = 0;
+    
+    if (num2 != 0)
         division = num1 / num2;
-      end else begin
-        division = 'b0;
-        overflow_flag = 1'b1;
-      end
+    else begin
+        division = 0;
     end
+    
+    if (division == 0)
+        REG_FLAGS[ZERO_FLAG_INDEX] = 1;
+      
   endfunction
   
 endmodule

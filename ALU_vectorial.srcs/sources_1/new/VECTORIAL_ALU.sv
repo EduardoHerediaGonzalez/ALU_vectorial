@@ -1,8 +1,11 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
+// Company: CINVESTAV Guadalajara Unit
+// Engineers: 
+// Lino Rosauro González Guerra
+// Eduardo Rafael Heredia González
+// Emmanuel Díaz Marín
+
 // Create Date: 24.11.2024 08:33:53
 // Design Name: 
 // Module Name: VECTORIAL_ALU
@@ -20,33 +23,36 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module VECTORIAL_ALU #(parameter D_BUS_WIDTH=8, NUM_ALUS = 10)(
-  input [(D_BUS_WIDTH * NUM_ALUS)-1:0] operand_a,
-  input [(D_BUS_WIDTH * NUM_ALUS)-1:0] operand_b,
-  input [3:0] opcode,                                       // Opcode for all ALUs
-  output [NUM_ALUS-1:0] equal_flag,                         // Concatenated equal flags
-  output [NUM_ALUS-1:0] less_flag,                          // Concatenated less flags
-  output [NUM_ALUS-1:0] greater_flag,                       // Concatenated greater flags
-  output [NUM_ALUS-1:0] overflow_flag,                      // Concatenated overflow flags
-  output [(D_BUS_WIDTH * NUM_ALUS)-1:0] result              // Concatenated results
-    );  
+module VECTORIAL_ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4, parameter TOTAL_OF_ALUS = 8)(
+    output reg [((REG_FLAGS_WIDTH * TOTAL_OF_ALUS) - 1):0] SIGNALS, // Concatenated reg_flags
+    output reg [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] Z,           // Concatenated results
+    input [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] A,
+    input [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] B,
+    input [(OPCODE_WIDTH - 1):0] SEL,                               // Opcode for all ALUs
+    input [(TOTAL_OF_ALUS - 1):0]ENABLE,                            // Concatenated enables
+    input CLK,                                                      // CLK for all ALUs
+    input [(TOTAL_OF_ALUS - 1):0]ARST                               // Concatenated async resets 
+);  
   
   //________________________________________________________ ALUs generation
   generate
-    for ( genvar i = 0; i < NUM_ALUS; i = i + 1) begin : alu_inst
+    for (genvar alu_index = 0; alu_index < TOTAL_OF_ALUS; alu_index = alu_index + 1) begin : alu_inst
       ALU #(
-        .D_BUS_WIDTH(D_BUS_WIDTH) 
+        .D_BUS_WIDTH(D_BUS_WIDTH),
+        .REG_FLAGS_WIDTH(REG_FLAGS_WIDTH),
+        .OPCODE_WIDTH(OPCODE_WIDTH)
       ) alu (
-        .equal_flag(equal_flag[i]),
-        .less_flag(less_flag[i]),
-        .greater_flag(greater_flag[i]),
-        .overflow_flag(overflow_flag[i]),
-        .result(result[(D_BUS_WIDTH*(i+1)-1) : (D_BUS_WIDTH*i)]),
-        .operand_A(operand_a[(D_BUS_WIDTH*(i+1)-1) : (D_BUS_WIDTH*i)]),
-        .operand_B(operand_b[(D_BUS_WIDTH*(i+1)-1) : (D_BUS_WIDTH*i)]),
-        .opcode(opcode)
+        .REG_FLAGS(SIGNALS[((REG_FLAGS_WIDTH * (alu_index + 1)) - 1): (REG_FLAGS_WIDTH * alu_index)]),
+        .RESULT(Z[((D_BUS_WIDTH * (alu_index + 1)) - 1) : (D_BUS_WIDTH * alu_index)]),
+        .OPERAND_A(A[((D_BUS_WIDTH * (alu_index + 1)) - 1) : (D_BUS_WIDTH * alu_index)]),
+        .OPERAND_B(B[((D_BUS_WIDTH * (alu_index + 1)) - 1) : (D_BUS_WIDTH * alu_index)]),
+        .OPCODE(SEL),
+        .ENABLE(ENABLE[alu_index]),
+        .CLK(CLK),
+        .ARST(ARST[alu_index])
       );
     end
+    
   endgenerate 
    
 endmodule
