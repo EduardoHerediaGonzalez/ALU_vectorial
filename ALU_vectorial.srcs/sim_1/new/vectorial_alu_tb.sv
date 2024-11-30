@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 11/19/2024 07:09:15 PM
+// Create Date: 11/30/2024 01:38:14 PM
 // Design Name: 
-// Module Name: alu_vectorial_tb
+// Module Name: vectorial_alu_tb
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module alu_vectorial_tb(
+module vectorial_alu_tb(
 
-);
+    );
 endmodule
