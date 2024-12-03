@@ -19,7 +19,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-interface VecAluInt(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4, parameter TOTAL_OF_ALUS = 8) ();
+interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4, parameter TOTAL_OF_ALUS = 8) ();
     logic [((REG_FLAGS_WIDTH * TOTAL_OF_ALUS) - 1):0] SIGNALS;
     logic [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] Z;          
     logic [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] A;
@@ -31,4 +31,4 @@ interface VecAluInt(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, pa
 
     //TODO: Add BFM functions
 
-endinterface VecAluInt
+endinterface: VecAluInt
