@@ -35,7 +35,7 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
     
     bit [(D_BUS_WIDTH - 1):0] a;
     bit [(D_BUS_WIDTH - 1):0] b;
-    bit [(OPCODE_WIDTH - 1):0] opcode;
+    
     
     //////////////////////////////// BFM ////////////////////////////////
     
@@ -50,7 +50,12 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
     function set_input_ENABLE_to_state(integer ALU_N, input bit state);
         ENABLE[(ALU_N - 1)] = state;
     endfunction
-    
+	
+	// Function to set the state of the input "ENABLE" for all ALUS to 1.
+    function set_all_ALUS_ENABLE_to_state(input bit state);
+        ENABLE = {TOTAL_OF_ALUS{state}};
+    endfunction
+   
     // Function to set the value of the inputs "A" and "B" to zero
     function set_input_A_and_B_to_zero();
         a = 0;
@@ -118,19 +123,19 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
         B = {TOTAL_OF_ALUS{b}};
     endfunction
     
-    function void set_operation_to(string OPERATION);                                         // Randomize a and b operands
+    function void set_operation_to(string OPERATION);                                        
         case(OPERATION)
-            "ADDITION"          : opcode = 0;
-            "SUBTRACTION"       : opcode = 1;
-            "BITWISE_AND"       : opcode = 2;
-            "BITWISE_OR"        : opcode = 3;
-            "BITWISE_XOR"       : opcode = 4;
-            "COMPARISON"        : opcode = 5;
-            "LEFT_SHIFT"        : opcode = 6;
-            "RIGHT_SHIFT"       : opcode = 7;
-            "MULTIPLICATION"    : opcode = 8;
-            "DIVISION"          : opcode = 9;
-            default             : opcode = 0;
+            "ADDITION"          : SEL = 0;
+            "SUBTRACTION"       : SEL = 1;
+            "BITWISE_AND"       : SEL = 2;
+            "BITWISE_OR"        : SEL = 3;
+            "BITWISE_XOR"       : SEL = 4;
+            "COMPARISON"        : SEL = 5;
+            "LEFT_SHIFT"        : SEL = 6;
+            "RIGHT_SHIFT"       : SEL = 7;
+            "MULTIPLICATION"    : SEL = 8;
+            "DIVISION"          : SEL = 9;
+            default             : SEL = 0;
         endcase
     endfunction
     
