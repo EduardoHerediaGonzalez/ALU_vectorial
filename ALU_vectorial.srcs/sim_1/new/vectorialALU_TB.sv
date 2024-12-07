@@ -19,19 +19,16 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-localparam TOTAL_OF_ALUS=10;
-localparam D_BUS_WIDTH=8;
 
-module vectorialALU_TB;
 
-    localparam TOTAL_OF_ALUS=10;
-    localparam D_BUS_WIDTH=8;
+module vectorialALU_TB #(parameter D_BUS_WIDTH=8, REG_FLAGS_WIDTH=6, OPCODE_WIDTH=4, TOTAL_OF_ALUS=10);
+
     
     bit clk;
     
-    VecAluInt #(.D_BUS_WIDTH(8), .REG_FLAGS_WIDTH(6), .OPCODE_WIDTH(4), .TOTAL_OF_ALUS(TOTAL_OF_ALUS)) alu_if (.clk(clk));  //___________ Interface instantiation
+    VecAluInt #(D_BUS_WIDTH, REG_FLAGS_WIDTH, OPCODE_WIDTH, TOTAL_OF_ALUS) alu_if (clk);  //___________ Interface instantiation
     
-    VECTORIAL_ALU #(.D_BUS_WIDTH(4), .REG_FLAGS_WIDTH(6), .OPCODE_WIDTH(4), .TOTAL_OF_ALUS(8)) DUT (  //___________ DUT instantiation                                      
+    VECTORIAL_ALU #(D_BUS_WIDTH, REG_FLAGS_WIDTH, OPCODE_WIDTH, TOTAL_OF_ALUS) DUT (  //___________ DUT instantiation                                      
     .SIGNALS(alu_if.SIGNALS),
     .Z(alu_if.Z),
     .A(alu_if.A),
@@ -162,7 +159,55 @@ endgenerate
 covergroup cg_vectorial_ALU @(posedge clk);
     ac: coverpoint alu_if.A;
     bc: coverpoint alu_if.B;   
-    rc: coverpoint alu_if.Z;    
+    rc: coverpoint alu_if.Z;
+    selc: coverpoint alu_if.SEL {
+        ignore_bins ib = {[10:15]};
+    }
+    
+    aOPaddition: coverpoint alu_if.A iff(alu_if.SEL == 0);
+    bOPaddition: coverpoint alu_if.B iff(alu_if.SEL == 0);
+    zOPaddition: coverpoint alu_if.Z iff(alu_if.SEL == 0);
+    
+    aOPsubtraction: coverpoint alu_if.A iff(alu_if.SEL == 1);
+    bOPsubtraction: coverpoint alu_if.B iff(alu_if.SEL == 1);
+    zOPsubtraction: coverpoint alu_if.Z iff(alu_if.SEL == 1);
+    
+    aOPmultilpication: coverpoint alu_if.A iff(alu_if.SEL == 8);
+    bOPmultilpication: coverpoint alu_if.B iff(alu_if.SEL == 8);
+    zOPmultilpication: coverpoint alu_if.Z iff(alu_if.SEL == 8);
+    
+    aOPdivision: coverpoint alu_if.A iff(alu_if.SEL == 9);
+    bOPdivision: coverpoint alu_if.B iff(alu_if.SEL == 9);
+    zOPdivision: coverpoint alu_if.Z iff(alu_if.SEL == 9);
+    
+    aOPleftshift: coverpoint alu_if.A iff(alu_if.SEL == 6);
+    bOPleftshift: coverpoint alu_if.B iff(alu_if.SEL == 6);
+    zOPleftshift: coverpoint alu_if.Z iff(alu_if.SEL == 6);
+    
+    aOPrightshift: coverpoint alu_if.A iff(alu_if.SEL == 7);
+    bOPrightshift: coverpoint alu_if.B iff(alu_if.SEL == 7);
+    zOPrightshift: coverpoint alu_if.Z iff(alu_if.SEL == 7);
+    
+    aOPbwAND: coverpoint alu_if.A iff(alu_if.SEL == 2);
+    bOPbwAND: coverpoint alu_if.B iff(alu_if.SEL == 2);
+    zOPbwAND: coverpoint alu_if.Z iff(alu_if.SEL == 2);
+    
+    aOPbwOR: coverpoint alu_if.A iff(alu_if.SEL == 3);
+    bOPbwOR: coverpoint alu_if.B iff(alu_if.SEL == 3);
+    zOPbwOR: coverpoint alu_if.Z iff(alu_if.SEL == 3);
+    
+    aOPbwXOR: coverpoint alu_if.A iff(alu_if.SEL == 4);
+    bOPbwXOR: coverpoint alu_if.B iff(alu_if.SEL == 4);
+    zOPbwXOR: coverpoint alu_if.Z iff(alu_if.SEL == 4);
+    
+    aOPcomparison: coverpoint alu_if.A iff(alu_if.SEL == 5);
+    bOPcomparison: coverpoint alu_if.B iff(alu_if.SEL == 5);
+    zOPcomparison: coverpoint alu_if.Z iff(alu_if.SEL == 5);
+    
+    aSelect: cross alu_if.A, selc;
+    bSelect: cross alu_if.B, selc;
+    zSelect: cross alu_if.Z, selc;
+       
  
 endgroup
     
@@ -187,22 +232,153 @@ initial begin
     `ifdef TEST1
         //////////////////////////////////////////////
         // 1.(200) Addition of random a and b       //
-        //                                          //
-        //                                          //
+        // 2.(200) Subtraction of random a and b    //
+        // 3.(200) Bitwise and of random a and b    //
+        // 4.(200) Bitwise or of random a and b     //
+        // 5.(200) Bitwise xor of random a and b    //
+        // 6.(200) Comparisons of random a and b    //
+        // 7.(200) Multiplications of random a and b//
+        // 8.(200) Divisions of random a and b      //
         //////////////////////////////////////////////
-
-    $display("___________ TEST 1 _____________");
-    $display("      ");
-    $display("___________ Random A and B additions _____________");
     
+    alu_if.set_all_ALUS_ENABLE_to_state(1'b1);
+    
+    alu_if.set_operation_to("ADDITION");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+        
     alu_if.set_operation_to("SUBTRACTION");
     repeat(200) begin
         alu_if.randomize_input_A();
         alu_if.randomize_input_B();
         @(posedge clk);
     end
+    
+    alu_if.set_operation_to("BITWISE_AND");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
 
-    `endif    
+    
+    alu_if.set_operation_to("BITWISE_OR");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+    
+
+    alu_if.set_operation_to("BIWISE_XOR");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+    
+
+    alu_if.set_operation_to("COMPARISON");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+    
+    
+    alu_if.set_operation_to("MULTIPLICATION");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+    
+    
+    alu_if.set_operation_to("DIVISION");
+    repeat(200) begin
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+
+    `endif
+    
+    
+    `ifdef TEST2
+        //////////////////////////////////////////////
+        // 1.(1,400) random operations with         //
+        // random a and b values.                   //
+        //////////////////////////////////////////////
+        
+    alu_if.set_all_ALUS_ENABLE_to_state(1'b1);
+
+    repeat(1400) begin
+        alu_if.randomize_input_SEL();
+        alu_if.randomize_input_A();
+        alu_if.randomize_input_B();
+        @(posedge clk);
+    end
+    `endif
+    
+    
+    `ifdef TEST3
+        //////////////////////////////////////////////////////
+        // 1.(1,400) random operations with overflow        //
+        // and underflow values                             //
+        // (700) a > MIDDLE_VALUE; b > a;                   //
+        // (700) b > MIDDLE_VALUE; a > b;                   //
+        //////////////////////////////////////////////////////
+        
+    alu_if.set_all_ALUS_ENABLE_to_state(1'b1);
+
+    repeat(700) begin
+        alu_if.randomize_input_SEL();
+        alu_if.randomize_inputs_A_B_to_generate_overflow();
+        @(posedge clk);
+    end
+    
+    repeat(700) begin
+        alu_if.randomize_input_SEL();
+        alu_if.randomize_inputs_B_A_to_generate_overflow();
+        @(posedge clk);
+    end
+    
+    `endif
+    
+    
+     `ifdef TEST4
+        //////////////////////////////////////////////////////
+        // 1.(500) Overflow additions                       //
+        // 2.(500) Underflow subtractions                   //
+        // 3.(500) Overflow multiplications                 //
+        //                                                  //
+        //////////////////////////////////////////////////////
+        
+    alu_if.set_all_ALUS_ENABLE_to_state(1'b1);
+
+    repeat(500) begin
+        alu_if.set_operation_to("ADDITION");
+        alu_if.randomize_inputs_A_B_to_generate_overflow();
+        @(posedge clk);
+    end
+    
+    repeat(500) begin
+        alu_if.set_operation_to("SUBTRACTION");
+        alu_if.randomize_inputs_A_B_to_generate_overflow();
+        @(posedge clk);
+    end
+    
+    repeat(500) begin
+        alu_if.set_operation_to("MULTIPLICATION");
+        alu_if.randomize_inputs_A_B_to_generate_overflow();
+        @(posedge clk);
+    end
+    
+    `endif
+    
 	
 	$finish;
 
