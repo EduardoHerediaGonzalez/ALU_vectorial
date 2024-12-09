@@ -19,7 +19,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4, parameter TOTAL_OF_ALUS = 8) (input clk);
+interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter OPCODE_WIDTH = 4, parameter TOTAL_OF_ALUS = 8) ();
     logic [((REG_FLAGS_WIDTH * TOTAL_OF_ALUS) - 1):0] SIGNALS;
     logic [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] Z;          
     logic [((D_BUS_WIDTH * TOTAL_OF_ALUS) - 1):0] A;
@@ -56,6 +56,18 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
         ENABLE = {TOTAL_OF_ALUS{state}};
     endfunction
    
+    // Function to set the value of the input "A" to zero
+    function set_input_A_to_zero();
+        a = 0;
+        A = {TOTAL_OF_ALUS{a}};
+    endfunction
+    
+    // Function to set the value of the input "B" to zero
+    function set_input_B_to_zero();
+        b = 0;
+        B = {TOTAL_OF_ALUS{b}};
+    endfunction
+    
     // Function to set the value of the inputs "A" and "B" to zero
     function set_input_A_and_B_to_zero();
         a = 0;
@@ -64,6 +76,18 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
         B = {TOTAL_OF_ALUS{b}};
     endfunction
 
+    // Function to set the value of the input "A" to the maximum value
+    function set_input_A_to_max_value();
+        a = MAX_VALUE;
+        A = {TOTAL_OF_ALUS{a}};
+    endfunction
+    
+    // Function to set the value of the input "B" to the maximum value
+    function set_input_B_to_max_value();
+        b = MAX_VALUE;
+        B = {TOTAL_OF_ALUS{b}};
+    endfunction
+    
     // Function to set the value of the inputs "A" and "B" to the maximum value
     function set_input_A_and_B_to_max_value();
         a = MAX_VALUE;
@@ -83,6 +107,18 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
         std::randomize(b);
         B = {TOTAL_OF_ALUS{b}};
     endfunction
+    
+    // Function to randomize input "A" distinct to zero
+    function randomize_input_A_distinct_to_zero();
+        std::randomize(a) with {a != 0;};
+        A = {TOTAL_OF_ALUS{a}};
+    endfunction
+    
+    // Function to randomize input "B" distinct to zero
+    function randomize_input_B_distinct_to_zero();
+        std::randomize(b) with {b != 0;};
+        B = {TOTAL_OF_ALUS{b}};
+    endfunction
 
     // Function that randomize the value of the input SEL.
     function randomize_input_SEL();
@@ -99,26 +135,23 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
         B = {TOTAL_OF_ALUS{this_value}};
     endfunction
     
-    // Function to set the value of the input "a" with the middle value of range [0, (WIDTH - 1)] 
-    function set_input_A_to_middle_value();
-        A = {TOTAL_OF_ALUS{MIDDLE_VALUE}};
-    endfunction
-
-    // Function to set the value of the input "b" with the middle value of range [0, (WIDTH - 1)] 
-    function set_input_B_to_middle_value();
-        B = {TOTAL_OF_ALUS{MIDDLE_VALUE}};
-    endfunction
-    
     // Function to randomize input A with values > MIDDLE_VALUE and randomize input B with values > A
-    function randomize_inputs_A_B_to_generate_overflow();
+    function randomize_inputs_A_and_B_to_generate_overflow();
         std::randomize(a, b) with {a > MIDDLE_VALUE; b > a;};
         A = {TOTAL_OF_ALUS{a}};
         B = {TOTAL_OF_ALUS{b}};
     endfunction
     
     // Function to randomize input B with values > MIDDLE_VALUE and randomize input A with values > B
-    function randomize_inputs_B_A_to_generate_overflow();
+    function randomize_inputs_B_and_A_to_generate_overflow();
         std::randomize(a, b) with {b > MIDDLE_VALUE; a > b;};
+        A = {TOTAL_OF_ALUS{a}};
+        B = {TOTAL_OF_ALUS{b}};
+    endfunction
+    
+    // Function to randomize input A with values > MIDDLE_VALUE and randomize input B with values > A
+    function randomize_inputs_A_and_B_to_generate_underflow();
+        std::randomize(a, b) with {a < b;};
         A = {TOTAL_OF_ALUS{a}};
         B = {TOTAL_OF_ALUS{b}};
     endfunction
@@ -131,8 +164,6 @@ interface VecAluInt #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, 
             "BITWISE_OR"        : SEL = 3;
             "BITWISE_XOR"       : SEL = 4;
             "COMPARISON"        : SEL = 5;
-            "LEFT_SHIFT"        : SEL = 6;
-            "RIGHT_SHIFT"       : SEL = 7;
             "MULTIPLICATION"    : SEL = 8;
             "DIVISION"          : SEL = 9;
             default             : SEL = 0;

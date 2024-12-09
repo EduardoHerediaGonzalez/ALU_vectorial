@@ -42,8 +42,6 @@ module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter
   localparam BITWISE_OR =   3;
   localparam BITWISE_XOR =  4;
   localparam COMPARISON =   5;
-  localparam LEFT_SHIFT =   6;
-  localparam RIGHT_SHIFT =  7;
   localparam MULTIPLICATION = 8;
   localparam DIVISION =     9;
   localparam MAX_VALUE = ((2**D_BUS_WIDTH) - 1);
@@ -54,10 +52,12 @@ module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter
   localparam UNDERFLOW_FLAG_INDEX = 4;
   localparam OVERFLOW_FLAG_INDEX = 5;
   
-  always @(posedge CLK) begin
+  always @(CLK, OPERAND_A, OPERAND_B, OPCODE) begin
     
-    if ((ENABLE == 0) || (ARST == 0))
+    if ((ENABLE == 0) || (ARST == 0)) begin
         RESULT = 0;
+        REG_FLAGS = 0;
+    end
     
     else begin
         case (OPCODE)
@@ -67,8 +67,6 @@ module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter
             BITWISE_OR: RESULT = bitwise_OR(OPERAND_A, OPERAND_B);
             BITWISE_XOR: RESULT = bitwise_XOR(OPERAND_A, OPERAND_B);
             COMPARISON: RESULT = comparison(OPERAND_A,OPERAND_B);
-            LEFT_SHIFT: RESULT = left_shift(OPERAND_A, OPERAND_B);
-            RIGHT_SHIFT: RESULT = right_shift(OPERAND_A, OPERAND_B);
             MULTIPLICATION: RESULT = multiplication(OPERAND_A, OPERAND_B);
             DIVISION: RESULT = division(OPERAND_A, OPERAND_B);
             default: RESULT = 0;
@@ -153,22 +151,6 @@ module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter
 
   endfunction
   
-  // Definition of the function left shift
-  function [(D_BUS_WIDTH - 1): 0] left_shift(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    REG_FLAGS = 0;
-      
-    left_shift = num1 << num2;
-      
-  endfunction
-  
-  // Definition of the function right shift
-  function [(D_BUS_WIDTH - 1): 0] right_shift(input [(D_BUS_WIDTH - 1): 0] num1, num2);
-    REG_FLAGS = 0;
-    
-    right_shift = num1 >> num2;
-    
-  endfunction
-  
   // Definition of the function multiplication
   function [(D_BUS_WIDTH - 1): 0] multiplication(input [(D_BUS_WIDTH - 1): 0] num1, num2);
     REG_FLAGS = 0;
@@ -191,7 +173,7 @@ module ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6, parameter
     if (num2 != 0)
         division = num1 / num2;
     else begin
-        division = 0;
+        division = 'bx;
     end
     
     if (division == 0)
