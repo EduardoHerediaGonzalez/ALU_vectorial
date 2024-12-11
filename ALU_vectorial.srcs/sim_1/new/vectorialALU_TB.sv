@@ -163,6 +163,67 @@ module vectorialALU_TB #(parameter D_BUS_WIDTH=4, REG_FLAGS_WIDTH=6, OPCODE_WIDT
         end
     endgenerate
 
+    //16. Verificar la bandera de cero (Zero Flag)
+    property zero_flag_when_zero;
+        @(posedge clk)
+        alu_if.Z == 0 |-> alu_if.ZF == 1;
+    endproperty
+    assert property (zero_flag_when_zero) else $error("La bandera de cero no se activa cuando Z es cero!");
+
+    // 17. Verificar la bandera de signo (Sign Flag)
+    property sign_flag_when_negative;
+        @(posedge clk)
+        $signed(alu_if.Z) < 0 |-> alu_if.SF == 1;
+    endproperty
+    assert property (sign_flag_when_negative) else $error("La bandera de signo no se activa cuando Z es negativo!");
+
+    // 18. Verificar la bandera de acarreo (Carry Flag)
+    property carry_flag_when_carry;
+        @(posedge clk)
+        (alu_if.SEL == 4'b0001 /* por ejemplo, suma */ && alu_if.Z > alu_if.A + alu_if.B) |-> alu_if.CF == 1;
+    endproperty
+    assert property (carry_flag_when_carry) else $error("La bandera de acarreo no se activa correctamente en una suma con acarreo!");
+
+    // 19. Verificar la bandera de desbordamiento (Overflow Flag)
+    property overflow_flag_when_overflow;
+        @(posedge clk)
+        (alu_if.SEL == 4'b0001 && $signed(alu_if.A) + $signed(alu_if.B) > $signed(alu_if.MAX_VALUE)) |-> alu_if.OF == 1;
+    endproperty
+    assert property (overflow_flag_when_overflow) else $error("La bandera de desbordamiento no se activa correctamente cuando hay desbordamiento!");
+
+    // 20. Verificar que la bandera de acarreo se desactive cuando no hay acarreo
+    property carry_flag_when_no_carry;
+        @(posedge clk)
+        (alu_if.SEL == 4'b0001 && alu_if.Z <= alu_if.A + alu_if.B) |-> alu_if.CF == 0;
+    endproperty
+    assert property (carry_flag_when_no_carry) else $error("La bandera de acarreo no se desactiva cuando no hay acarreo!");
+
+    // 21. Verificar que la salida esté correcta en una operación de suma
+    property z_equals_a_plus_b_when_add;
+        @(posedge clk)
+        alu_if.SEL == 4'b0001 /* suma */ |-> alu_if.Z == alu_if.A + alu_if.B;
+    endproperty
+    assert property (z_equals_a_plus_b_when_add) else $error("La salida Z no es correcta en una operación de suma!");
+
+    //22. Verificar que la bandera de acarreo no se active para operaciones que no impliquen acarreo
+    property no_carry_for_non_add_ops;
+        @(posedge clk)
+        alu_if.SEL != 4'b0001 /* no suma */ |-> alu_if.CF == 0;
+    endproperty
+    assert property (no_carry_for_non_add_ops) else $error("La bandera de acarreo se activa para operaciones que no deberían generar acarreo!");
+
+    //23. Verificar que las banderas sean correctas en una operación de restas
+    property flags_correct_for_subtraction;
+        @(posedge clk)
+        alu_if.SEL == 4'b0010 /* resta */ |-> 
+            (alu_if.Z == alu_if.A - alu_if.B) &&
+            ((alu_if.A - alu_if.B) == 0 ? alu_if.ZF == 1 : alu_if.ZF == 0) &&
+            ((alu_if.A < alu_if.B) ? alu_if.CF == 1 : alu_if.CF == 0);
+    endproperty
+    assert property (flags_correct_for_subtraction) else $error("Las banderas no son correctas en una operación de resta!");
+
+
+
 //______________________________________________________________ Covergroup definition
 
     covergroup cg_vectorial_ALU @(posedge clk);
