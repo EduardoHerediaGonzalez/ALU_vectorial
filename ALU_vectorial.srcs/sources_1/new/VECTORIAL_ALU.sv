@@ -31,7 +31,7 @@ module VECTORIAL_ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6,
     input [(OPCODE_WIDTH - 1):0] SEL,                               // Opcode for all ALUs
     input [(TOTAL_OF_ALUS - 1):0]ENABLE,                            // Concatenated enables
     input CLK,                                                      // CLK for all ALUs
-    input [(TOTAL_OF_ALUS - 1):0]ARST                               // Concatenated async resets 
+    input [(TOTAL_OF_ALUS - 1):0]RST                               // Concatenated async resets 
 );  
   
   //________________________________________________________ ALUs generation
@@ -49,7 +49,7 @@ module VECTORIAL_ALU #(parameter D_BUS_WIDTH = 4, parameter REG_FLAGS_WIDTH = 6,
         .OPCODE(SEL),
         .ENABLE(ENABLE[alu_index]),
         .CLK(CLK),
-        .ARST(ARST[alu_index])
+        .RST(RST[alu_index])
       );
     end
     
