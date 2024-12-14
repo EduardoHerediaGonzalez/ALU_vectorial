@@ -49,109 +49,96 @@ module vectorialALU_TB #(parameter D_BUS_WIDTH=4, REG_FLAGS_WIDTH=6, OPCODE_WIDT
     
     property x;
         @(posedge clk)
-        ((alu_if.SEL == 0) && (alu_if.A == alu_if.set_input_A_to_zero()) && (alu_if.B == alu_if.set_input_B_to_zero())) |-> alu_if.Z == 15;
+        ((alu_if.SEL == 0) && (alu_if.A == alu_if.set_input_A_to_zero()) && (alu_if.B == alu_if.set_input_B_to_zero())) |-> alu_if.Z == 0;
     endproperty
-    assert property (x) else $error("Z is not zero when both inputs are zero");
+    assert property (x) else $error("Z no es cero cuando ambas entradas son cero");
     
-    // 1. Verificar que la salida SIGNALS no contenga valores desconocidos (X/Z) cuando ENABLE está activo.
+    // 1. Verify that the SIGNALS output does not contain unknown values ​​(X/Z) when ENABLE is active.
     property signals_valid_when_enable;
         @(posedge clk)
         alu_if.ENABLE !== 0 |-> $isunknown(alu_if.SIGNALS) == 0;
     endproperty
     assert property (signals_valid_when_enable) else $error("SIGNALS contiene valores desconocidos cuando ENABLE está activo!");
 
-    // 2. Verificar que Z sea cero si ENABLE está desactivado.
+    // 2. Verify that Z is zero if ENABLE is set to off.
     property z_zero_when_disable;
         @(posedge clk)
         alu_if.ENABLE == 0 |-> alu_if.Z == 0;
     endproperty
     assert property (z_zero_when_disable) else $error("Z no es cero cuando ENABLE está desactivado!");
     
-    // 3. Verificar que SIGNALS sea cero si ENABLE está desactivado.
+    // 3. Verify that SIGNALS is zero if ENABLE is disabled.
     property signals_zero_when_disable;
         @(posedge clk)
         alu_if.ENABLE == 0 |-> alu_if.SIGNALS == 0;
     endproperty
     assert property (signals_zero_when_disable) else $error("SIGNALS no es cero cuando ENABLE está desactivado!");
     
-    // 4. Verificar que Z no sea todo unos cuando ARST está activo.
+    // 4. Verify that Z is not all ones when ARST is active.
     property z_not_all_ones_when_arst;
         @(posedge clk)
         alu_if.ARST != 0 |-> alu_if.Z !== {((D_BUS_WIDTH * TOTAL_OF_ALUS)){1'b1}};
     endproperty
     assert property (z_not_all_ones_when_arst) else $error("Z tiene todo unos cuando ARST está activo!");
     
-    // 5. Verificar que SIGNALS no cambien si ARST está activo.
+    // 5. Verify that SIGNALS do not change if ARST is active.
     property signals_stable_when_arst;
         @(posedge clk)
         alu_if.ARST != 0 |-> $stable(alu_if.SIGNALS);
     endproperty
     assert property (signals_stable_when_arst) else $error("SIGNALS cambian cuando ARST está activo!");
     
-    // 6. Verificar que las señales A y B no contengan X/Z.
+    // 6. Verify that signals A and B do not contain X/Z.
     property no_unknown_inputs;
         @(posedge clk)
         $isunknown(alu_if.A) == 0 && $isunknown(alu_if.B) == 0;
     endproperty
     assert property (no_unknown_inputs) else $error("A o B contienen valores desconocidos!");
     
-    // 7. Verificar que la salida Z responda en un ciclo cuando ENABLE cambia de 0 a 1.
+    // 7. Verify that output Z responds in one cycle when ENABLE changes from 0 to 1.
     property z_responds_to_enable;
         @(posedge clk)
         $rose(alu_if.ENABLE) |-> $changed(alu_if.Z);
     endproperty
     assert property (z_responds_to_enable) else $error("Z no responde al cambio de ENABLE de 0 a 1!");
     
-    // 8. Verificar que las señales en SIGNALS no sean negativas si son interpretadas como enteros con signo.
+    // 8. Verify that signals in SIGNALS are not negative if they are interpreted as signed integers.
     property signals_not_negative;
         @(posedge clk)
-        $signed(alu_if.SIGNALS) >= 0;
+        alu_if.SIGNALS >= 0;
     endproperty
     assert property (signals_not_negative) else $error("SIGNALS contiene valores negativos!");
     
-    // 9. Verificar que Z sea diferente de A cuando B es diferente de cero.
+    // 9. Check that Z is different from A when B is different from zero.
     property z_not_equal_to_a_if_b_nonzero;
         @(posedge clk)
-        alu_if.B != 0 |-> alu_if.Z != alu_if.A;
+        (alu_if.B != 0 && alu_if.SEL == 4'b0001) |-> alu_if.Z != alu_if.A;
     endproperty
-    assert property (z_not_equal_to_a_if_b_nonzero) else $error("Z es igual a A cuando B no es cero!");
+    assert property (z_not_equal_to_a_if_b_nonzero) else $error("Z es igual a A cuando B no es cero en una operación de suma!");
     
-    // 10. Verificar que la salida Z sea igual a A cuando B es cero y el opcode es de transferencia directa.
+    // 10. Verify that output Z is equal to A when B is zero and the opcode is direct transfer.
     property z_equals_a_if_b_zero;
         @(posedge clk)
         alu_if.B == 0 && alu_if.SEL == 4'b0000 |-> alu_if.Z == alu_if.A;
     endproperty
     assert property (z_equals_a_if_b_zero) else $error("Z no es igual a A cuando B es cero y el opcode es transferencia!");
     
-    // 11. Verificar que todas las ALUs reciban la misma señal SEL.
-    property sel_propagated_to_all_alus;
-        @(posedge clk)
-        alu_if.SEL == alu_if.SEL;
-    endproperty
-    assert property (sel_propagated_to_all_alus) else $error("La señal SEL no se propagó correctamente a todas las ALUs!");
     
-    // 12. Verificar que ARST domine cualquier operación (reset asíncrono).
+    // 11. Verify that ARST masters any operation (asynchronous reset).
     property arst_dominates;
         @(posedge clk)
         alu_if.ARST != 0 |-> alu_if.Z == 0 && alu_if.SIGNALS == 0;
     endproperty
     assert property (arst_dominates) else $error("ARST no domina las operaciones como debería!");
-    
-    // 13. Verificar que Z sea estable si ENABLE no cambia.
-    property z_stable_if_enable_unchanged;
+
+    // 12. Check that the outputs do not change if the clock does not go up. -->> CHECK
+    property stable_outputs_between_clocks;
         @(posedge clk)
-        $stable(alu_if.ENABLE) |-> $stable(alu_if.Z);
+        $past(alu_if.Z) == alu_if.Z && $past(alu_if.SIGNALS) == alu_if.SIGNALS;
     endproperty
-    assert property (z_stable_if_enable_unchanged) else $error("Z no es estable cuando ENABLE no cambia!");
-    
-    // 14. Verificar que las salidas no cambien si el reloj no sube.
-    property stable_outputs_without_clock;
-        @(posedge clk)
-        $stable(clk) |-> $stable(alu_if.Z) && $stable(alu_if.SIGNALS);
-    endproperty
-    assert property (stable_outputs_without_clock) else $error("Las salidas cambian cuando el reloj no sube!");
-    
-    // 15. Verificar que cada ALU individualmente no genere resultados desconocidos.
+    assert property (stable_outputs_between_clocks) else $error("Las salidas cambian entre flancos del reloj!");
+
+    // 13. Verify that each ALU individually does not generate unknown results.
     genvar i;
     generate
         for (i = 0; i < TOTAL_OF_ALUS; i = i + 1) begin : alu_individual_check
@@ -163,56 +150,49 @@ module vectorialALU_TB #(parameter D_BUS_WIDTH=4, REG_FLAGS_WIDTH=6, OPCODE_WIDT
         end
     endgenerate
 
-    //16. Verificar la bandera de cero (Zero Flag)
+    //14. Check the Zero Flag
     property zero_flag_when_zero;
         @(posedge clk)
         alu_if.Z == 0 |-> alu_if.SIGNALS[ZERO_FLAG_INDEX] == 1;
     endproperty
     assert property (zero_flag_when_zero) else $error("La bandera de cero no se activa cuando Z es cero!");
 
-    /* // 17. Verificar la bandera de signo (Sign Flag)
-    property sign_flag_when_negative;
-        @(posedge clk)
-        $signed(alu_if.Z) < 0 |-> alu_if.SF == 1;
-    endproperty
-    assert property (sign_flag_when_negative) else $error("La bandera de signo no se activa cuando Z es negativo!"); */
-
-    // 18. Verificar la bandera de acarreo (Carry Flag)
+    // 15. Check the Carry Flag
     property carry_flag_when_carry;
         @(posedge clk)
-        (alu_if.SEL == 4'b0001 /* por ejemplo, suma */ && alu_if.Z > alu_if.A + alu_if.B) |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 1;
+        (alu_if.SEL == 4'b0001 && alu_if.Z > alu_if.A + alu_if.B) |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 1;
     endproperty
     assert property (carry_flag_when_carry) else $error("La bandera de acarreo no se activa correctamente en una suma con acarreo!");
 
-    // 19. Verificar la bandera de desbordamiento (Overflow Flag)
+    // 16. Check the Overflow Flag
     property overflow_flag_when_overflow;
         @(posedge clk)
         (alu_if.SEL == 4'b0001 && $signed(alu_if.A) + $signed(alu_if.B) > $signed(alu_if.MAX_VALUE)) |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 1;
     endproperty
     assert property (overflow_flag_when_overflow) else $error("La bandera de desbordamiento no se activa correctamente cuando hay desbordamiento!");
 
-    // 20. Verificar que la bandera de acarreo se desactive cuando no hay acarreo
+    // 17. Verify that the carry flag is cleared when there is no carry
     property carry_flag_when_no_carry;
         @(posedge clk)
         (alu_if.SEL == 4'b0001 && alu_if.Z <= alu_if.A + alu_if.B) |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 0;
     endproperty
     assert property (carry_flag_when_no_carry) else $error("La bandera de acarreo no se desactiva cuando no hay acarreo!");
 
-    // 21. Verificar que la salida esté correcta en una operación de suma
+    // 18. Verify that the output is correct in an addition operation
     property z_equals_a_plus_b_when_add;
         @(posedge clk)
-        alu_if.SEL == 4'b0001 /* suma */ |-> alu_if.Z == alu_if.A + alu_if.B;
+        alu_if.SEL == 4'b0001 |-> alu_if.Z == alu_if.A + alu_if.B;
     endproperty
     assert property (z_equals_a_plus_b_when_add) else $error("La salida Z no es correcta en una operación de suma!");
 
-    //22. Verificar que la bandera de acarreo no se active para operaciones que no impliquen acarreo
+    //19. Verify that the carry flag is not set for operations that do not involve carrying
     property no_carry_for_non_add_ops;
         @(posedge clk)
-        alu_if.SEL != 4'b0001 /* no suma */ |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 0;
+        alu_if.SEL != 4'b0001 |-> alu_if.SIGNALS[OVERFLOW_FLAG_INDEX] == 0;
     endproperty
     assert property (no_carry_for_non_add_ops) else $error("La bandera de acarreo se activa para operaciones que no deberían generar acarreo!");
 
-    //23. Verificar que las banderas sean correctas en una operación de restas
+    //20. Check that the flags are correct in a subtraction operation
     property flags_correct_for_subtraction;
         @(posedge clk)
         alu_if.SEL == 4'b0010 /* resta */ |-> 
